@@ -1,36 +1,45 @@
 import numpy as np
+import pygame
 import time
-import os
-import platform
 
 class GameOfLife:
-    def __init__(self, width, height):
+    def __init__(self, width, height, cell_size=10):
         self.width = width
         self.height = height
+        self.cell_size = cell_size
         self.grid = self.initialize_grid()
-        self.clear_command = 'cls' if platform.system() == "Windows" else 'clear'
+        self.screen_width = width * cell_size
+        self.screen_height = height * cell_size
+        self.running = True
+
+        # Инициализация Pygame
+        pygame.init()
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        pygame.display.set_caption("Game of Life")
 
     def initialize_grid(self):
         return np.random.choice([0, 1], size=(self.width, self.height))
 
-    def print_grid(self, intermediate_grid=None):
-        # Очистка консоли
-        os.system(self.clear_command)
-
-        for i in range(self.grid.shape[0]):
-            row_str = ''
-            for j in range(self.grid.shape[1]):
+    def draw_grid(self, intermediate_grid=None):
+        self.screen.fill((0, 0, 0))
+        for i in range(self.width):
+            for j in range(self.height):
+                color = (0, 0, 0)
                 if intermediate_grid is not None:
                     if intermediate_grid[i, j] == 1:
-                        row_str += '□ '
+                        color = (255, 0, 0)  # Red for dying cells
                     elif intermediate_grid[i, j] == 2:
-                        row_str += '░ '
-                    else:
-                        row_str += '█ ' if self.grid[i, j] else '  '
+                        color = (0, 255, 0)  # Green for new cells
+                    elif self.grid[i, j] == 1:
+                        color = (255, 255, 255)  # White for living cells
                 else:
-                    row_str += '█ ' if self.grid[i, j] else '  '
-            print(row_str)
-        print("\n")
+                    if self.grid[i, j] == 1:
+                        color = (255, 255, 255)  # White for living cells
+
+                pygame.draw.rect(self.screen, color,
+                                 (i * self.cell_size, j * self.cell_size, self.cell_size - 1, self.cell_size - 1))
+
+        pygame.display.flip()
 
     def create_intermediate_grid(self):
         intermediate_grid = np.zeros(self.grid.shape)
@@ -59,15 +68,27 @@ class GameOfLife:
         self.grid = new_grid
 
     def run(self, iterations):
+        clock = pygame.time.Clock()
         for _ in range(iterations):
-            self.print_grid()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    break
+
+            if not self.running:
+                break
+
+            self.draw_grid()
             intermediate_grid = self.create_intermediate_grid()
-            time.sleep(0.5)
-            self.print_grid(intermediate_grid)
-            time.sleep(0.5)
+            time.sleep(1)
+            self.draw_grid(intermediate_grid)
+            time.sleep(1)
             self.update_grid()
+            clock.tick(10)
+
+        pygame.quit()
 
 # Запуск игры
 if __name__ == "__main__":
-    game = GameOfLife(width=20, height=20)
-    game.run(iterations=2)
+    game = GameOfLife(width=50, height=50, cell_size=10)
+    game.run(iterations=20)
